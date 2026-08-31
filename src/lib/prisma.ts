@@ -11,7 +11,11 @@ function getClient(): PrismaClient {
     throw new Error("DATABASE_URL tanımlı değil. .env.local dosyasını kontrol edin.");
   }
 
-  const client = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  // Sunucusuz ortamda her örnek kendi havuzunu açar; Supabase pooler'ı
+  // yormamak için havuzu küçük tutuyoruz (2-3 kullanıcı için fazlasıyla yeter).
+  const client = new PrismaClient({
+    adapter: new PrismaPg({ connectionString, max: 3 }),
+  });
   globalForPrisma.prisma = client;
   return client;
 }
