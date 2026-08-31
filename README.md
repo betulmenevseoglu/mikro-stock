@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mikro Sızdırmazlık — Stok Takip
 
-## Getting Started
+Mikro Sızdırmazlık için ürün, stok ve cari takip uygulaması.
 
-First, run the development server:
+## Neler var
+
+- **Ürünler** — tipe özel ölçü alanları (O-Ring → iç çap/kesit çapı gibi) + ürün başına serbest ek özellikler, çoklu resim, malzeme, Shore sertliği, renk
+- **Müşteriye özel ürünler** — müşteri, müşteri parça no ve kalıp no bilgisiyle
+- **Stok** — giriş / çıkış / sayım hareketleri, kritik stok uyarısı, tek depo
+- **Cariler** — müşteri ve tedarikçi kartları
+- **Hareket geçmişi** — filtreleme ve Excel (CSV) dışa aktarma
+- **Kullanıcılar** — e-posta/şifre ile giriş, herkes aynı yetkide
+
+Fiyatlar bu uygulamada tutulmaz; Wino tarafında yönetilir.
+
+## Teknoloji
+
+Next.js 16 (App Router) · TypeScript · Tailwind v4 · Prisma 7 · Supabase (Postgres + Storage) · Vercel
+
+## Geliştirme
 
 ```bash
+npm install
+cp .env.example .env.local   # değerleri doldurun
+npm run db:deploy            # tabloları oluştur
+npm run db:seed              # ürün tipleri, malzemeler, ilk kullanıcı
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Ortam değişkenleri
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Değişken | Açıklama |
+|---|---|
+| `DATABASE_URL` | Supabase transaction pooler (port 6543) — uygulama bağlantısı |
+| `DIRECT_URL` | Supabase direct connection (port 5432) — migration'lar |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase proje adresi |
+| `SUPABASE_SERVICE_ROLE_KEY` | Storage'a sunucu tarafından yazmak için (gizli) |
+| `SUPABASE_STORAGE_BUCKET` | Ürün resimlerinin bucket adı (`urun-resimleri`) |
+| `AUTH_SECRET` | Oturum çerezini imzalayan gizli anahtar |
+| `SEED_ADMIN_*` | `db:seed` ile oluşturulan ilk kullanıcının bilgileri |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Yararlı komutlar
 
-## Learn More
+```bash
+npm run db:migrate    # şema değişikliğinden sonra yeni migration
+npm run db:studio     # veritabanını tarayıcıda görüntüle
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Logo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`public/logo.png` değiştirilirse uygulama her yerde otomatik günceller.
+Sekme ikonu (`src/app/icon.png`) ayrıca üretilir.

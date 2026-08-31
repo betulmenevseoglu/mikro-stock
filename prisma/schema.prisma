@@ -1,0 +1,254 @@
+// Mikro Sızdırmazlık - Stok Takip Sistemi
+// Veritabanı: Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Kullanıcılar — herkesin yetkisi aynı, sadece aktif/pasif ayrımı var
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  movements StockMovement[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Ürün tipleri ve tipe özel alan tanımları
+// Örn: "O-Ring" tipi -> iç çap (mm), kesit çapı (mm)
+//      "Silikon Hortum" tipi -> iç çap (mm), dış çap (mm), et kalınlığı (mm)
+// ---------------------------------------------------------------------------
+
+enum FieldType {
+  NUMBER
+  TEXT
+  SELECT
+}
+
+model ProductType {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fields   ProductTypeField[]
+  products Product[]
+
+  @@map("product_types")
+}
+
+model ProductTypeField {
+  id            String    @id @default(cuid())
+  productTypeId String
+  key           String // specs JSON içindeki anahtar, örn "icCap"
+  label         String // ekranda görünen ad, örn "İç Çap"
+  type          FieldType @default(NUMBER)
+  unit          String? // "mm", "Shore A", "°C" ...
+  options       String[]  @default([]) // type = SELECT ise seçenekler
+  required      Boolean   @default(false)
+  sortOrder     Int       @default(0)
+
+  productType ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([productTypeId, key])
+  @@map("product_type_fields")
+}
+
+// ---------------------------------------------------------------------------
+// Malzemeler — Silikon, NBR, EPDM, FKM/Viton, PTFE ...
+// ---------------------------------------------------------------------------
+
+model Material {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String? // NBR, VMQ, EPDM ...
+  foodGrade Boolean  @default(false) // gıda/ilaç uygunluğu
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@map("materials")
+}
+
+// ---------------------------------------------------------------------------
+// Ürünler
+// ---------------------------------------------------------------------------
+
+enum Unit {
+  ADET
+  METRE
+  KG
+  PAKET
+}
+
+model Product {
+  id            String  @id @default(cuid())
+  code          String  @unique // stok kodu
+  name          String
+  productTypeId String
+  materialId    String?
+
+  hardnessShoreA Int? // sertlik
+  color          String?
+
+  unit        Unit    @default(ADET)
+  quantity    Decimal @default(0) @db.Decimal(14, 3) // güncel stok
+  minQuantity Decimal @default(0) @db.Decimal(14, 3) // kritik stok seviyesi
+
+  // Müşteriye özel ürünler
+  isCustom       Boolean @default(false)
+  customerId     String?
+  customerPartNo String? // müşterinin kendi parça numarası
+  moldNo         String? // kalıp numarası
+
+  // Tip şablonundaki alanlar + kullanıcının eklediği serbest alanlar
+  // { "icCap": 25.4, "kesitCapi": 3.5, "_extra": [{ "label": "Kalıp Ömrü", "value": "50.000 baskı" }] }
+  specs Json @default("{}")
+
+  notes    String?
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productType ProductType       @relation(fields: [productTypeId], references: [id])
+  material    Material?         @relation(fields: [materialId], references: [id])
+  customer    Customer?         @relation(fields: [customerId], references: [id])
+  images      ProductImage[]
+  movements   StockMovement[]
+  suppliers   ProductSupplier[]
+
+  @@index([productTypeId])
+  @@index([customerId])
+  @@index([isActive])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String // public URL
+  path      String // storage içindeki yol (silmek için)
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ---------------------------------------------------------------------------
+// Cari kartlar
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id          String   @id @default(cuid())
+  code        String?  @unique
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  taxOffice   String?
+  taxNumber   String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products  Product[]
+  movements StockMovement[]
+
+  @@map("customers")
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  code        String?  @unique
+  name        String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  taxOffice   String?
+  taxNumber   String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products  ProductSupplier[]
+  movements StockMovement[]
+
+  @@map("suppliers")
+}
+
+model ProductSupplier {
+  id           String  @id @default(cuid())
+  productId    String
+  supplierId   String
+  supplierCode String? // tedarikçinin kendi ürün kodu
+  leadTimeDays Int?
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+  @@map("product_suppliers")
+}
+
+// ---------------------------------------------------------------------------
+// Stok hareketleri — stok miktarı her zaman bu hareketlerden türetilir
+// ---------------------------------------------------------------------------
+
+enum MovementType {
+  GIRIS // satın alma / üretim girişi
+  CIKIS // sevkiyat / sarf
+  SAYIM // sayım düzeltmesi (miktarı mutlak değere çeker)
+}
+
+model StockMovement {
+  id        String       @id @default(cuid())
+  productId String
+  type      MovementType
+  quantity  Decimal      @db.Decimal(14, 3) // hareketin miktarı (her zaman pozitif)
+  balance   Decimal      @db.Decimal(14, 3) // hareket sonrası stok
+
+  customerId String? // çıkış ise hangi müşteriye
+  supplierId String? // giriş ise hangi tedarikçiden
+  reference  String? // irsaliye / sipariş no
+  note       String?
+
+  userId    String
+  createdAt DateTime @default(now())
+
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+
+  @@index([productId, createdAt])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
