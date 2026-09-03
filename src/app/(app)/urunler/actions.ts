@@ -249,7 +249,8 @@ export async function resimBirincilYap(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
-// Ürün pasife alma / silme
+// Ürün pasife alma
+// Not: ürünler kalıcı olarak silinmez, sadece pasife alınır
 // ---------------------------------------------------------------------------
 
 export async function urunDurumDegistir(formData: FormData) {
@@ -261,19 +262,4 @@ export async function urunDurumDegistir(formData: FormData) {
   await prisma.product.update({ where: { id }, data: { isActive: !urun.isActive } });
   revalidatePath("/urunler");
   revalidatePath(`/urunler/${id}`);
-}
-
-export async function urunSil(formData: FormData) {
-  await requireUser();
-  const id = String(formData.get("id") ?? "");
-
-  const resimler = await prisma.productImage.findMany({ where: { productId: id } });
-  for (const resim of resimler) {
-    await deleteProductImage(resim.path).catch(() => {});
-  }
-
-  await prisma.product.delete({ where: { id } });
-
-  revalidatePath("/urunler");
-  redirect("/urunler");
 }
