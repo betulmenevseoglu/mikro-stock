@@ -33,6 +33,7 @@ export default async function UrunTipleriSayfasi() {
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">Ürün Tipleri ve Alanları</h1>
         <p className="mt-1 text-sm text-slate-500">
           Her tipin kendi ölçü alanları vardır. Ürün eklerken tip seçilince bu alanlar formda çıkar.
+          Mavi etiketli alanlar yalnızca ilgili seçim yapıldığında görünür.
         </p>
       </div>
 
@@ -77,6 +78,17 @@ export default async function UrunTipleriSayfasi() {
                       {alan.unit && <span className="text-slate-400"> ({alan.unit})</span>}
                     </span>
                     <span className="badge bg-white text-slate-500">{TIP_ETIKET[alan.type]}</span>
+                    {alan.showWhenKey && alan.showWhenValues.length > 0 && (
+                      <span
+                        className="badge bg-sky-50 text-sky-700"
+                        title={`Sadece "${
+                          tip.fields.find((d) => d.key === alan.showWhenKey)?.label ??
+                          alan.showWhenKey
+                        }" alanı ${alan.showWhenValues.join(" veya ")} iken görünür`}
+                      >
+                        {alan.showWhenValues.join(" / ")} iken
+                      </span>
+                    )}
                     <form action={tipAlaniSil}>
                       <input type="hidden" name="id" value={alan.id} />
                       <button

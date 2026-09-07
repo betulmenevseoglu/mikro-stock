@@ -66,6 +66,12 @@ model ProductTypeField {
   required      Boolean   @default(false)
   sortOrder     Int       @default(0)
 
+  // Koşullu görünürlük: bu alan, aynı tipteki başka bir alan (showWhenKey)
+  // showWhenValues içindeki değerlerden birini aldığında gösterilir.
+  // Örn: "En" alanı, "sekil" alanı Kare veya Dikdörtgen iken görünür.
+  showWhenKey    String?
+  showWhenValues String[] @default([])
+
   productType ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
 
   @@unique([productTypeId, key])

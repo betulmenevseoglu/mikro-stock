@@ -16,6 +16,9 @@ type FieldSeed = {
   type?: "NUMBER" | "TEXT" | "SELECT";
   unit?: string;
   options?: string[];
+  /** Bu alan, showWhenKey alanı showWhenValues değerlerinden birini aldığında görünür */
+  showWhenKey?: string;
+  showWhenValues?: string[];
 };
 
 const PRODUCT_TYPES: { name: string; slug: string; fields: FieldSeed[] }[] = [
@@ -54,10 +57,14 @@ const PRODUCT_TYPES: { name: string; slug: string; fields: FieldSeed[] }[] = [
     name: "Conta / Sızdırmazlık Elemanı",
     slug: "conta",
     fields: [
-      { key: "disCap", label: "Dış Çap", unit: "mm" },
-      { key: "icCap", label: "İç Çap", unit: "mm" },
-      { key: "kalinlik", label: "Kalınlık", unit: "mm" },
+      // Şekil önce sorulur; altındaki ölçü alanları seçime göre değişir
       { key: "sekil", label: "Şekil", type: "SELECT", options: ["Yuvarlak", "Kare", "Dikdörtgen", "Özel Form"] },
+      { key: "icCap", label: "İç Çap", unit: "mm", showWhenKey: "sekil", showWhenValues: ["Yuvarlak"] },
+      { key: "disCap", label: "Dış Çap", unit: "mm", showWhenKey: "sekil", showWhenValues: ["Yuvarlak"] },
+      { key: "en", label: "En", unit: "mm", showWhenKey: "sekil", showWhenValues: ["Kare", "Dikdörtgen"] },
+      { key: "boy", label: "Boy", unit: "mm", showWhenKey: "sekil", showWhenValues: ["Kare", "Dikdörtgen"] },
+      { key: "yukseklik", label: "Yükseklik", unit: "mm", showWhenKey: "sekil", showWhenValues: ["Kare", "Dikdörtgen"] },
+      { key: "kalinlik", label: "Kalınlık", unit: "mm", showWhenKey: "sekil", showWhenValues: ["Yuvarlak", "Özel Form"] },
     ],
   },
   {
@@ -135,6 +142,8 @@ async function main() {
           unit: field.unit ?? null,
           options: field.options ?? [],
           sortOrder: fieldIndex,
+          showWhenKey: field.showWhenKey ?? null,
+          showWhenValues: field.showWhenValues ?? [],
         },
         create: {
           productTypeId: created.id,
@@ -144,6 +153,8 @@ async function main() {
           unit: field.unit ?? null,
           options: field.options ?? [],
           sortOrder: fieldIndex,
+          showWhenKey: field.showWhenKey ?? null,
+          showWhenValues: field.showWhenValues ?? [],
         },
       });
     }

@@ -14,6 +14,9 @@ export type TipAlani = {
   unit: string | null;
   options: string[];
   required: boolean;
+  /** Bu alan, showWhenKey alanı showWhenValues değerlerinden birini aldığında görünür */
+  showWhenKey: string | null;
+  showWhenValues: string[];
 };
 
 export type TipSecenegi = { id: string; name: string; fields: TipAlani[] };
@@ -68,6 +71,27 @@ export default function UrunFormu({
   const [ekler, setEkler] = useState<EkOzellik[]>(urun?.ekOzellikler ?? []);
 
   const seciliTip = useMemo(() => tipler.find((t) => t.id === tipId), [tipler, tipId]);
+
+  // Koşullu alanlar için tetikleyici alanların (örn. "Şekil") güncel değerleri
+  const [specDegerleri, setSpecDegerleri] = useState<Record<string, string>>(
+    () => urun?.specs ?? {},
+  );
+
+  function specDegeri(key: string) {
+    return specDegerleri[key] ?? "";
+  }
+
+  /**
+   * Bir alan; bağımlılığı yoksa, bağımlılığı sağlanıyorsa veya
+   * (veri kaybını önlemek için) halihazırda dolu ise gösterilir.
+   */
+  function alanGorunur(f: TipAlani) {
+    if (!f.showWhenKey || f.showWhenValues.length === 0) return true;
+    if (f.showWhenValues.includes(specDegeri(f.showWhenKey))) return true;
+    return (urun?.specs[f.key] ?? "") !== "";
+  }
+
+  const gorunenAlanlar = seciliTip?.fields.filter(alanGorunur) ?? [];
 
   return (
     <form action={formAction} className="space-y-5">
@@ -191,7 +215,7 @@ export default function UrunFormu({
 
         {seciliTip && seciliTip.fields.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-3">
-            {seciliTip.fields.map((f) => (
+            {gorunenAlanlar.map((f) => (
               <div key={f.key}>
                 <label className="label" htmlFor={`spec_${f.key}`}>
                   {f.label}
@@ -202,7 +226,10 @@ export default function UrunFormu({
                   <select
                     id={`spec_${f.key}`}
                     name={`spec_${f.key}`}
-                    defaultValue={urun?.specs[f.key] ?? ""}
+                    value={specDegeri(f.key)}
+                    onChange={(e) =>
+                      setSpecDegerleri({ ...specDegerleri, [f.key]: e.target.value })
+                    }
                     className="input"
                   >
                     <option value="">Seçilmedi</option>
@@ -216,7 +243,7 @@ export default function UrunFormu({
                   <input
                     id={`spec_${f.key}`}
                     name={`spec_${f.key}`}
-                    type={f.type === "NUMBER" ? "text" : "text"}
+                    type="text"
                     inputMode={f.type === "NUMBER" ? "decimal" : undefined}
                     defaultValue={urun?.specs[f.key] ?? ""}
                     className="input"

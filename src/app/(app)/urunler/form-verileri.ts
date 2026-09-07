@@ -28,6 +28,8 @@ export async function formSecenekleri(): Promise<{
         unit: f.unit,
         options: f.options,
         required: f.required,
+        showWhenKey: f.showWhenKey,
+        showWhenValues: f.showWhenValues,
       })),
     })),
     malzemeler: malzemeler.map((m) => ({ id: m.id, name: m.name })),
